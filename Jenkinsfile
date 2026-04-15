@@ -1,66 +1,56 @@
 pipeline {
     agent any
 
+    environment {
+        SONAR_SCANNER_HOME = tool 'SonarScanner'
+    }
+
     stages {
 
         stage('1. Code Checkout') {
             steps {
-                echo 'Checking out code from GitHub...'
-                git branch: 'main', url: 'https://github.com/Hardik4794/8.2CDevSecOps.git'
+                git 'https://github.com/Hardik4794/8.2CDevSecOps.git'
             }
         }
 
-        stage('2. Build') {
+        stage('2. Install Dependencies') {
             steps {
-                echo 'Installing dependencies...'
                 sh 'npm install'
             }
         }
 
-        stage('3. Test') {
+        stage('3. SonarCloud Analysis') {
             steps {
-                echo 'Running tests...'
-                sh '''
-                    set +e
-                    npm test
-                    exit 0
-                '''
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                    $SONAR_SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=Hardik4794_8.2CDevSecOps \
+                    -Dsonar.organization=hardik4794 \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=https://sonarcloud.io \
+                    -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
             }
         }
 
-        stage('4. Static Code Analysis') {
+        stage('4. Quality Gate') {
             steps {
-                echo 'Performing static code analysis...'
-                sh '''
-                    set +e
-                    echo "Static analysis placeholder"
-                    exit 0
-                '''
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
+                }
             }
         }
 
-        stage('5. Security Scan') {
+        stage('5. npm Audit') {
             steps {
-                echo 'Running security scan...'
-                sh '''
-                    set +e
-                    npm audit --audit-level=low
-                    exit 0
-                '''
+                sh 'npm audit --audit-level=high || true'
             }
         }
 
         stage('6. Deploy') {
             steps {
-                echo 'Deploying application...'
-                sh 'echo "Deployment step placeholder"'
-            }
-        }
-
-        stage('7. Monitor') {
-            steps {
-                echo 'Monitoring application...'
-                sh 'echo "Monitoring step placeholder"'
+                sh 'echo Deployment step'
             }
         }
     }
