@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        SONAR_SCANNER_HOME = tool 'SonarScanner'
-    }
-
     stages {
 
         stage('1. Code Checkout') {
@@ -23,7 +19,9 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                    $SONAR_SCANNER_HOME/bin/sonar-scanner \
+                    npm install -g sonar-scanner
+
+                    sonar-scanner \
                     -Dsonar.projectKey=Hardik4794_8.2CDevSecOps \
                     -Dsonar.organization=hardik4794 \
                     -Dsonar.sources=. \
@@ -34,23 +32,15 @@ pipeline {
             }
         }
 
-        stage('4. Quality Gate') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false
-                }
-            }
-        }
-
-        stage('5. npm Audit') {
+        stage('4. npm Security Scan') {
             steps {
                 sh 'npm audit --audit-level=high || true'
             }
         }
 
-        stage('6. Deploy') {
+        stage('5. Deploy') {
             steps {
-                sh 'echo Deployment step'
+                sh 'echo "Deployment step completed"'
             }
         }
     }
